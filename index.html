@@ -13,7 +13,7 @@
         .status-text { font-size: 13px; color: #888; margin-bottom: 25px; letter-spacing: 1px; }
         .points-box { background: #f0f0f0; padding: 25px; margin-bottom: 25px; }
         .points-num { font-size: 48px; font-weight: bold; }
-        .btn { background: var(--brand-color); color: white; border: none; padding: 15px; width: 100%; font-size: 15px; letter-spacing: 2px; cursor: pointer; transition: 0.3s; margin-top: 10px; display: block; }
+        .btn { background: var(--brand-color); color: white; border: none; padding: 15px; width: 100%; font-size: 15px; letter-spacing: 2px; cursor: pointer; transition: 0.3s; margin-top: 10px; display: block; text-decoration: none; }
         .btn:disabled { background: #ccc; cursor: not-allowed; }
         .btn-outline { background: white !important; color: var(--brand-color) !important; border: 1px solid var(--brand-color) !important; }
         .footer-logo { margin-top: 40px; font-style: italic; opacity: 0.5; font-size: 11px; }
@@ -34,9 +34,7 @@
         
         <div id="msg-box" style="margin-bottom: 20px; font-weight: bold; font-size: 14px; min-height: 20px;"></div>
 
-        <button id="mainBtn" class="btn">載入中...</button>
-        
-        <button id="showRedeemBtn" class="btn btn-outline" style="display:none;">前往兌換獎勵</button>
+        <button id="showRedeemBtn" class="btn">前往兌換獎勵</button>
         <button id="closeBtn" class="btn btn-outline">關閉視窗</button>
 
         <div id="redeem-section">
@@ -70,28 +68,18 @@
             document.getElementById('status').innerText = `你好，${userProfile.displayName}`;
             document.getElementById('action-area').style.display = 'block';
             
-            const mainBtn = document.getElementById('mainBtn');
             const showRedeemBtn = document.getElementById('showRedeemBtn');
 
             if (act === 'v') {
-                // --- 純查詢模式 ---
+                // 純查詢
                 document.getElementById('msg-box').innerText = "您的勳章紀錄如上";
-                mainBtn.innerText = "完成查看";
-                mainBtn.onclick = () => liff.closeWindow();
-                showRedeemBtn.style.display = 'block'; // 查詢時也可以選擇去兌換
             } else if (act === 'm') {
-                // --- 兌換模式 ---
+                // 兌換模式
                 showRedeem();
-                mainBtn.style.display = 'none';
             } else {
-                // --- 自動加點模式 (預設) ---
+                // 自動加點
                 userPoints += 1;
                 document.getElementById('msg-box').innerText = "今日勳章已自動存入紀錄";
-                mainBtn.innerText = "查看歷史紀錄";
-                mainBtn.onclick = () => {
-                    window.location.href = window.location.pathname + "?act=v";
-                };
-                showRedeemBtn.style.display = 'block';
                 sendData('add', userProfile, true); 
             }
             
@@ -121,7 +109,6 @@
     function showRedeem() {
         document.getElementById('redeem-section').style.display = 'block';
         document.getElementById('showRedeemBtn').style.display = 'none';
-        document.getElementById('mainBtn').style.display = 'none';
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
 
