@@ -8,8 +8,12 @@
     <style>
         :root { --brand-color: #3a4a3a; --bg-color: #f9f7f2; }
         body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background-color: var(--bg-color); color: var(--brand-color); display: flex; justify-content: center; padding: 20px; }
-        .container { background: white; padding: 40px 30px; border-radius: 2px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); width: 100%; max-width: 400px; border-top: 5px solid var(--brand-color); text-align: center; }
-        h1 { font-size: 24px; letter-spacing: 4px; margin-bottom: 5px; }
+        .container { background: white; padding: 30px 30px 40px 30px; border-radius: 2px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); width: 100%; max-width: 400px; border-top: 5px solid var(--brand-color); text-align: center; }
+        
+        /* Logo 樣式設定 */
+        .brand-logo { width: 100px; height: auto; margin: 0 auto 15px auto; display: block; }
+        
+        h1 { font-size: 22px; letter-spacing: 4px; margin-bottom: 5px; margin-top: 0; }
         .status-text { font-size: 13px; color: #888; margin-bottom: 25px; letter-spacing: 1px; }
         .points-box { background: #f0f0f0; padding: 25px; margin-bottom: 25px; }
         .points-num { font-size: 48px; font-weight: bold; }
@@ -23,6 +27,8 @@
 <body>
 
 <div class="container">
+    <img src="https://raw.githubusercontent.com/tom0322/my-line-liff/main/logo.png" alt="或者 OR Logo" class="brand-logo">
+    
     <h1>或者 OR</h1>
     <div id="status" class="status-text">探索勳章紀錄...</div>
 
@@ -56,34 +62,30 @@
         try {
             await liff.init({ liffId: LIFF_ID });
             if (!liff.isLoggedIn()) { liff.login(); return; }
-
             userProfile = await liff.getProfile();
             const urlParams = new URLSearchParams(window.location.search);
             const act = urlParams.get('act');
-
-            // 1. 初始查詢
+            
+            // 初始查詢
             const response = await fetch(SCRIPT_URL + "?uid=" + userProfile.userId);
             userPoints = parseInt(await response.text()) || 0;
-
+            
             document.getElementById('status').innerText = `你好，${userProfile.displayName}`;
             document.getElementById('action-area').style.display = 'block';
-
-            // 2. 判斷是否需要自動集點 (主網址進來且沒有 act 參數時)
+            
+            // 判斷是否自動集點
             if (!act) {
-                userPoints += 1; // 畫面上先預加
+                userPoints += 1;
                 document.getElementById('msg-box').innerText = "今日勳章已自動存入紀錄";
                 sendData('add', userProfile, true); 
             } else if (act === 'm') {
-                showRedeem(); // 如果網址帶 m 直接開兌換
+                showRedeem();
             }
-
             refreshUI();
-
-            // 按鈕事件綁定
+            
             document.getElementById('showRedeemBtn').onclick = showRedeem;
             document.getElementById('closeBtn').onclick = () => liff.closeWindow();
             document.getElementById('finalRedeemBtn').onclick = () => sendData('minus', userProfile);
-
         } catch (err) {
             document.getElementById('status').innerText = "連線異常，請重新掃描";
         }
@@ -123,7 +125,6 @@
             }
         });
     }
-
     main();
 </script>
 </body>
