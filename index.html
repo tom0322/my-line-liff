@@ -3,99 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>集點兌換系統</title>
+    <title>或者 OR | 會員集點</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; text-align: center; padding: 40px 20px; background-color: #f4f7f6; }
-        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
-        h2 { color: #333; margin-top: 0; }
-        p { color: #666; font-size: 16px; line-height: 1.5; }
-        .btn { font-size: 18px; padding: 15px; color: white; border: none; border-radius: 10px; cursor: pointer; width: 100%; font-weight: bold; transition: 0.3s; }
-        .red { background-color: #e74c3c; }
-        .red:disabled { background-color: #ccc; cursor: not-allowed; }
-        #status { color: #2ecc71; font-weight: bold; margin-bottom: 20px; min-height: 24px; }
-        .notice { font-size: 12px; color: #999; margin-top: 20px; }
+        :root { --brand-color: #3a4a3a; } /* 設定品牌低調內斂的深綠色調 */
+        body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background-color: #f9f7f2; color: var(--brand-color); display: flex; justify-content: center; padding: 40px 20px; }
+        .container { background: white; padding: 40px 30px; border-radius: 2px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); width: 100%; max-width: 400px; border-top: 5px solid var(--brand-color); }
+        h1 { font-size: 24px; letter-spacing: 4px; margin-bottom: 10px; }
+        .status-text { font-size: 14px; color: #888; margin-bottom: 30px; letter-spacing: 1px; }
+        .points-box { background: #f0f0f0; padding: 20px; margin-bottom: 30px; }
+        .points-num { font-size: 32px; font-weight: bold; }
+        .btn { background: var(--brand-color); color: white; border: none; padding: 15px; width: 100%; font-size: 16px; letter-spacing: 2px; cursor: pointer; transition: 0.3s; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        .footer-logo { margin-top: 40px; font-style: italic; opacity: 0.5; font-size: 12px; }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <div id="status">系統初始化中...</div>
+<div class="container">
+    <h1>或者 OR</h1>
+    <div id="status" class="status-text">正在探索您的集點紀錄...</div>
 
-        <div id="action-area" style="display:none;">
-            <h2>點數兌換</h2>
-            <p>請向店員出示此畫面<br>確認後點擊下方按鈕</p>
-            <p style="color:#e74c3c; font-weight:bold;">將扣除 10 點點數</p>
-            <button id="redeemBtn" class="btn red">確認兌換 (扣除10點)</button>
-            <div class="notice">※ 若點數不足，兌換將不會生效 ※</div>
+    <div id="action-area" style="display:none;">
+        <div class="points-box">
+            <div id="points-display" class="points-num">--</div>
+            <div style="font-size: 12px; margin-top: 5px;">目前累積點數</div>
         </div>
+        
+        <div id="msg-box" style="margin-bottom: 25px; font-weight: bold;"></div>
+        
+        <button id="redeemBtn" class="btn">確認兌換獎勵</button>
     </div>
 
-    <script>
-        // 設定區
-        const LIFF_ID = "2008892988-xUkrMmtw"; 
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyPDXFmisG6YZJypcbiyA0wJ8QbzZs2yvszA6qiEot23DM96cgTfLdWhyhyTAdrw2P0rg/exec";
+    <div class="footer-logo">或者，是一種生活選擇。</div>
+</div>
 
-        async function main() {
-            try {
-                await liff.init({ liffId: LIFF_ID });
+<script>
+    const LIFF_ID = "2008892988-xUkrMmtw"; 
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyPDXFmisG6YZJypcbiyA0wJ8QbzZs2yvszA6qiEot23DM96cgTfLdWhyhyTAdrw2P0rg/exec";
 
-                if (!liff.isLoggedIn()) {
-                    liff.login();
-                    return;
-                }
+    async function main() {
+        try {
+            await liff.init({ liffId: LIFF_ID });
+            if (!liff.isLoggedIn()) { liff.login(); return; }
 
-                const profile = await liff.getProfile();
-                const urlParams = new URLSearchParams(window.location.search);
-                const act = urlParams.get('act');
+            const profile = await liff.getProfile();
+            const urlParams = new URLSearchParams(window.location.search);
+            const act = urlParams.get('act');
 
-                if (act === "m") {
-                    document.getElementById('status').style.display = 'none';
-                    document.getElementById('action-area').style.display = 'block';
-                    
-                    document.getElementById('redeemBtn').onclick = function() {
-                        sendData('minus', profile);
-                    };
-                } else {
-                    document.getElementById('status').innerText = "你好 " + profile.displayName + "，正在集點...";
-                    sendData('add', profile);
-                }
-            } catch (err) {
-                document.getElementById('status').innerText = "系統錯誤: " + err;
-            }
-        }
+            // 觸發即時查詢
+            const response = await fetch(SCRIPT_URL + "?uid=" + profile.userId);
+            const currentPoints = parseInt(await response.text()) || 0;
 
-        function sendData(actionType, profile) {
+            document.getElementById('status').innerText = `你好，${profile.displayName}`;
+            document.getElementById('action-area').style.display = 'block';
+            document.getElementById('points-display').innerText = currentPoints;
+
             const btn = document.getElementById('redeemBtn');
-            if(btn) {
-                btn.disabled = true;
-                btn.innerText = "處理中...";
-            }
-            document.getElementById('status').style.display = 'block';
-            document.getElementById('status').innerText = "資料傳送中...";
+            const msgBox = document.getElementById('msg-box');
 
-            fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors', 
-                body: JSON.stringify({
-                    userId: profile.userId,
-                    displayName: profile.displayName,
-                    action: actionType
-                })
-            }).then(() => {
-                const msg = (actionType === 'add') ? "集點要求已送出！" : "兌換要求已送出！\n請店員確認試算表餘額。";
-                alert(msg);
-                liff.closeWindow();
-            }).catch(e => {
-                alert("網路錯誤，請重試：" + e);
-                if(btn) {
-                    btn.disabled = false;
-                    btn.innerText = "確認兌換 (扣除10點)";
+            if (act === "m") {
+                if (currentPoints >= 10) {
+                    msgBox.innerHTML = "點數已達兌換門檻";
+                    msgBox.style.color = "#3a4a3a";
+                    btn.onclick = () => sendData('minus', profile);
+                } else {
+                    msgBox.innerHTML = "點數不足 10 點，尚無法兌換";
+                    msgBox.style.color = "#e74c3c";
+                    btn.disabled = true;
+                    btn.innerText = "尚未達標";
                 }
-            });
+            } else {
+                btn.innerText = "自動集點中...";
+                btn.disabled = true;
+                sendData('add', profile);
+            }
+        } catch (err) {
+            document.getElementById('status').innerText = "連線異常，請重新掃描";
         }
+    }
 
-        main();
-    </script>
+    function sendData(actionType, profile) {
+        const btn = document.getElementById('redeemBtn');
+        if(btn) btn.disabled = true;
+        
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({
+                userId: profile.userId,
+                displayName: profile.displayName,
+                action: actionType
+            })
+        }).then(() => {
+            alert(actionType === 'add' ? "感謝您的光臨，點數已存入「或者」帳戶。" : "兌換要求已送出，請與店員確認。");
+            liff.closeWindow();
+        });
+    }
+
+    main();
+</script>
 </body>
 </html>
