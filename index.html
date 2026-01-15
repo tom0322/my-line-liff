@@ -1,57 +1,42 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>會員集點中...</title>
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-</head>
-<body>
-    <div id="status" style="text-align: center; margin-top: 50px; font-size: 20px;">
-        讀取會員資料中，請稍候...
-    </div>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script>
+  async function main() {
+    await liff.init({ liffId: "2008892988-xUkrMmtw" });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    
+    const profile = await liff.getProfile();
+    const urlParams = new URLSearchParams(window.location.search);
+    const act = urlParams.get('act'); // 抓取網址裡的指令
+    const scriptURL = "https://script.google.com/macros/s/AKfycbyPDXFmisG6YZJypcbiyA0wJ8QbzZs2yvszA6qiEot23DM96cgTfLdWhyhyTAdrw2P0rg/exec";
 
-    <script>
-        async function main() {
-            // 1. 初始化 LIFF (請把這裡換成你的 LIFF ID)
-            await liff.init({ liffId: "2008892988-xUkrMmtw" });
+    if (act === "m") {
+      // 顯示兌換介面
+      document.body.innerHTML = `
+        <div style="text-align:center; padding-top:50px;">
+          <h2>確認兌換？</h2>
+          <p>將扣除 10 點點數</p>
+          <button onclick="sendData('minus')" style="font-size:20px; background:red; color:white; padding:15px;">確定兌換</button>
+        </div>
+      `;
+    } else {
+      // 自動執行加點
+      sendData('add');
+    }
 
-            // 2. 判斷是否登入
-            if (!liff.isLoggedIn()) {
-                liff.login();
-            } else {
-                // 3. 抓取用戶名字
-                const profile = await liff.getProfile();
-                const userId = profile.userId;
-                const displayName = profile.displayName;
-
-                document.getElementById('status').innerText = "你好 " + displayName + "，正在集點...";
-
-                // 4. 將資料傳送到 Google 試算表 (請把這裡換成你的 Google 網頁應用程式 URL)
-                const scriptURL = "https://script.google.com/macros/s/AKfycbyPDXFmisG6YZJypcbiyA0wJ8QbzZs2yvszA6qiEot23DM96cgTfLdWhyhyTAdrw2P0rg/exec";
-
-                fetch(scriptURL, {
-                    method: 'POST',
-                    mode: 'no-cors', // 解決跨網域問題
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: userId,
-                        displayName: displayName
-                    })
-                })
-                .then(() => {
-                    document.getElementById('status').innerHTML = 
-                        "<h2>集點完成！</h2><p>謝謝 " + displayName + "</p>";
-                    // 5. (選擇性) 關閉視窗
-                    setTimeout(() => { liff.closeWindow(); }, 2000);
-                })
-                .catch(error => {
-                    document.getElementById('status').innerText = "集點失敗，請稍後再試";
-                    console.error('Error!', error.message);
-                });
-            }
-        }
-        main();
-    </script>
-</body>
-</html>
+    window.sendData = function(actionType) {
+      fetch(scriptURL, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify({
+          userId: profile.userId,
+          displayName: profile.displayName,
+          action: actionType
+        })
+      }).then(() => {
+        alert(actionType === 'add' ? "加點成功！" : "兌換完成！");
+        liff.closeWindow();
+      });
+    }
+  }
+  main();
+</script>
