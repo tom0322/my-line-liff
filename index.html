@@ -6,15 +6,16 @@
     <title>或者 OR | 會員集點</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        :root { --brand-color: #3a4a3a; } /* 設定品牌低調內斂的深綠色調 */
-        body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background-color: #f9f7f2; color: var(--brand-color); display: flex; justify-content: center; padding: 40px 20px; }
-        .container { background: white; padding: 40px 30px; border-radius: 2px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); width: 100%; max-width: 400px; border-top: 5px solid var(--brand-color); }
+        :root { --brand-color: #3a4a3a; --bg-color: #f9f7f2; }
+        body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background-color: var(--bg-color); color: var(--brand-color); display: flex; justify-content: center; padding: 40px 20px; }
+        .container { background: white; padding: 40px 30px; border-radius: 2px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); width: 100%; max-width: 400px; border-top: 5px solid var(--brand-color); text-align: center; }
         h1 { font-size: 24px; letter-spacing: 4px; margin-bottom: 10px; }
         .status-text { font-size: 14px; color: #888; margin-bottom: 30px; letter-spacing: 1px; }
-        .points-box { background: #f0f0f0; padding: 20px; margin-bottom: 30px; }
-        .points-num { font-size: 32px; font-weight: bold; }
-        .btn { background: var(--brand-color); color: white; border: none; padding: 15px; width: 100%; font-size: 16px; letter-spacing: 2px; cursor: pointer; transition: 0.3s; }
+        .points-box { background: #f0f0f0; padding: 30px; margin-bottom: 30px; }
+        .points-num { font-size: 48px; font-weight: bold; }
+        .btn { background: var(--brand-color); color: white; border: none; padding: 15px; width: 100%; font-size: 16px; letter-spacing: 2px; cursor: pointer; transition: 0.3s; margin-bottom: 10px; }
         .btn:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-outline { background: white; color: var(--brand-color); border: 1px solid var(--brand-color); }
         .footer-logo { margin-top: 40px; font-style: italic; opacity: 0.5; font-size: 12px; }
     </style>
 </head>
@@ -27,12 +28,14 @@
     <div id="action-area" style="display:none;">
         <div class="points-box">
             <div id="points-display" class="points-num">--</div>
-            <div style="font-size: 12px; margin-top: 5px;">目前累積勳章</div>
+            <div id="points-label" style="font-size: 12px; margin-top: 5px;">目前累積勳章</div>
         </div>
         
         <div id="msg-box" style="margin-bottom: 25px; font-weight: bold;"></div>
         
-        <button id="redeemBtn" class="btn">確認兌換獎勵</button>
+        <div id="button-group">
+            <button id="mainBtn" class="btn">載入中...</button>
+        </div>
     </div>
 
     <div class="footer-logo">讓在地人驕傲 旅行者憧憬 - 或者。</div>
@@ -51,21 +54,21 @@
             const urlParams = new URLSearchParams(window.location.search);
             const act = urlParams.get('act');
 
-            // 觸發即時查詢
             const response = await fetch(SCRIPT_URL + "?uid=" + profile.userId);
-            const currentPoints = parseInt(await response.text()) || 0;
+            let currentPoints = parseInt(await response.text()) || 0;
 
             document.getElementById('status').innerText = `你好，${profile.displayName}`;
             document.getElementById('action-area').style.display = 'block';
-            document.getElementById('points-display').innerText = currentPoints;
-
-            const btn = document.getElementById('redeemBtn');
+            const btn = document.getElementById('mainBtn');
             const msgBox = document.getElementById('msg-box');
+            const pointsDisplay = document.getElementById('points-display');
 
             if (act === "m") {
+                // --- 兌換模式 ---
+                pointsDisplay.innerText = currentPoints;
+                btn.innerText = "確認兌換獎勵";
                 if (currentPoints >= 10) {
                     msgBox.innerHTML = "勳章已達兌換門檻";
-                    msgBox.style.color = "#3a4a3a";
                     btn.onclick = () => sendData('minus', profile);
                 } else {
                     msgBox.innerHTML = "勳章不足 10 枚，尚無法兌換";
@@ -73,20 +76,31 @@
                     btn.disabled = true;
                     btn.innerText = "尚未達標";
                 }
+            } else if (act === "v") {
+                // --- 純查詢模式 ---
+                pointsDisplay.innerText = currentPoints;
+                msgBox.innerHTML = "您的勳章紀錄如上";
+                btn.innerText = "關閉視窗";
+                btn.onclick = () => liff.closeWindow();
             } else {
-                btn.innerText = "自動集章中...";
-                btn.disabled = true;
-                sendData('add', profile);
+                // --- 自動加點模式 ---
+                pointsDisplay.innerText = currentPoints + 1;
+                msgBox.innerHTML = "勳章已成功存入您的帳戶";
+                btn.innerText = "查看勳章紀錄";
+                // 點擊後跳轉到純查詢頁面
+                btn.onclick = () => {
+                    window.location.href = window.location.pathname + "?act=v";
+                };
+                
+                // 執行背景加點
+                sendData('add', profile, true); 
             }
         } catch (err) {
             document.getElementById('status').innerText = "連線異常，請重新掃描";
         }
     }
 
-    function sendData(actionType, profile) {
-        const btn = document.getElementById('redeemBtn');
-        if(btn) btn.disabled = true;
-        
+    function sendData(actionType, profile, silent = false) {
         fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
@@ -96,8 +110,10 @@
                 action: actionType
             })
         }).then(() => {
-            alert(actionType === 'add' ? "感謝您的光臨，勳章已存入「或者」帳戶。" : "兌換要求已送出，請與店員確認。");
-            liff.closeWindow();
+            if (!silent) {
+                alert(actionType === 'add' ? "加點成功！" : "兌換要求已送出。");
+                liff.closeWindow();
+            }
         });
     }
 
