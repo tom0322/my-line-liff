@@ -1,42 +1,70 @@
-<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<script>
-  async function main() {
-    await liff.init({ liffId: "2008892988-xUkrMmtw" });
-    if (!liff.isLoggedIn()) { liff.login(); return; }
-    
-    const profile = await liff.getProfile();
-    const urlParams = new URLSearchParams(window.location.search);
-    const act = urlParams.get('act'); // 抓取網址裡的指令
-    const scriptURL = "https://script.google.com/macros/s/AKfycbyPDXFmisG6YZJypcbiyA0wJ8QbzZs2yvszA6qiEot23DM96cgTfLdWhyhyTAdrw2P0rg/exec";
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>集點系統</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; }
+        .btn { font-size: 20px; padding: 15px 30px; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .red { background-color: #ff4d4d; }
+    </style>
+</head>
+<body>
+    <div id="status">讀取中...</div>
+    <div id="action-area" style="display:none;">
+        <h2 id="msg-title">確認兌換？</h2>
+        <p>將扣除 10 點點數</p>
+        <button onclick="sendData('minus')" class="btn red">確定兌換</button>
+    </div>
 
-    if (act === "m") {
-      // 顯示兌換介面
-      document.body.innerHTML = `
-        <div style="text-align:center; padding-top:50px;">
-          <h2>確認兌換？</h2>
-          <p>將扣除 10 點點數</p>
-          <button onclick="sendData('minus')" style="font-size:20px; background:red; color:white; padding:15px;">確定兌換</button>
-        </div>
-      `;
-    } else {
-      // 自動執行加點
-      sendData('add');
-    }
+    <script>
+        async function main() {
+            try {
+                // [修改點 1] 請輸入你的 LIFF ID
+                await liff.init({ liffId: "2008892988-xUkrMmtw" });
 
-    window.sendData = function(actionType) {
-      fetch(scriptURL, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: JSON.stringify({
-          userId: profile.userId,
-          displayName: profile.displayName,
-          action: actionType
-        })
-      }).then(() => {
-        alert(actionType === 'add' ? "加點成功！" : "兌換完成！");
-        liff.closeWindow();
-      });
-    }
-  }
-  main();
-</script>
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                    return;
+                }
+
+                const profile = await liff.getProfile();
+                const urlParams = new URLSearchParams(window.location.search);
+                const act = urlParams.get('act');
+                
+                // [修改點 2] 請輸入你的 Google Apps Script 網址
+                const scriptURL = "https://script.google.com/macros/s/AKfycbyPDXFmisG6YZJypcbiyA0wJ8QbzZs2yvszA6qiEot23DM96cgTfLdWhyhyTAdrw2P0rg/exec";
+
+                if (act === "m") {
+                    document.getElementById('status').style.display = 'none';
+                    document.getElementById('action-area').style.display = 'block';
+                } else {
+                    document.getElementById('status').innerText = "你好 " + profile.displayName + "，正在集點...";
+                    sendData('add', profile, scriptURL);
+                }
+            } catch (err) {
+                document.getElementById('status').innerText = "發生錯誤: " + err;
+            }
+        }
+
+        function sendData(actionType, profile, scriptURL) {
+            fetch(scriptURL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify({
+                    userId: profile.userId,
+                    displayName: profile.displayName,
+                    action: actionType
+                })
+            }).then(() => {
+                alert(actionType === 'add' ? "加點成功！" : "兌換完成！");
+                liff.closeWindow();
+            }).catch(e => alert("傳送失敗: " + e));
+        }
+
+        main();
+    </script>
+</body>
+</html>
