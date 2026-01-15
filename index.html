@@ -3,38 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>或者 OR | 會員集點</title>
+    <title>或者 OR | 會員中心</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         :root { --brand-color: #3a4a3a; --bg-color: #f9f7f2; }
-        body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background-color: var(--bg-color); color: var(--brand-color); display: flex; justify-content: center; padding: 40px 20px; }
+        body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background-color: var(--bg-color); color: var(--brand-color); display: flex; justify-content: center; padding: 20px; }
         .container { background: white; padding: 40px 30px; border-radius: 2px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); width: 100%; max-width: 400px; border-top: 5px solid var(--brand-color); text-align: center; }
-        h1 { font-size: 24px; letter-spacing: 4px; margin-bottom: 10px; }
-        .status-text { font-size: 14px; color: #888; margin-bottom: 30px; letter-spacing: 1px; }
-        .points-box { background: #f0f0f0; padding: 30px; margin-bottom: 30px; }
+        h1 { font-size: 24px; letter-spacing: 4px; margin-bottom: 5px; }
+        .status-text { font-size: 13px; color: #888; margin-bottom: 25px; letter-spacing: 1px; }
+        .points-box { background: #f0f0f0; padding: 25px; margin-bottom: 25px; }
         .points-num { font-size: 48px; font-weight: bold; }
-        .btn { background: var(--brand-color); color: white; border: none; padding: 15px; width: 100%; font-size: 16px; letter-spacing: 2px; cursor: pointer; transition: 0.3s; margin-bottom: 10px; }
+        .btn { background: var(--brand-color); color: white; border: none; padding: 15px; width: 100%; font-size: 15px; letter-spacing: 2px; cursor: pointer; transition: 0.3s; margin-top: 10px; }
         .btn:disabled { background: #ccc; cursor: not-allowed; }
         .btn-outline { background: white; color: var(--brand-color); border: 1px solid var(--brand-color); }
-        .footer-logo { margin-top: 40px; font-style: italic; opacity: 0.5; font-size: 12px; }
+        .footer-logo { margin-top: 40px; font-style: italic; opacity: 0.5; font-size: 11px; }
+        #redeem-section { border-top: 1px dashed #ddd; margin-top: 25px; padding-top: 25px; display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>或者 OR</h1>
-    <div id="status" class="status-text">正在探索您的勳章紀錄...</div>
+    <div id="status" class="status-text">探索勳章紀錄...</div>
 
     <div id="action-area" style="display:none;">
         <div class="points-box">
             <div id="points-display" class="points-num">--</div>
-            <div id="points-label" style="font-size: 12px; margin-top: 5px;">目前累積勳章</div>
+            <div style="font-size: 12px; margin-top: 5px;">目前累積勳章</div>
         </div>
         
-        <div id="msg-box" style="margin-bottom: 25px; font-weight: bold;"></div>
-        
-        <div id="button-group">
-            <button id="mainBtn" class="btn">載入中...</button>
+        <div id="msg-box" style="margin-bottom: 20px; font-weight: bold; font-size: 14px;"></div>
+
+        <button id="showRedeemBtn" class="btn">前往兌換獎勵</button>
+        <button id="closeBtn" class="btn btn-outline">關閉視窗</button>
+
+        <div id="redeem-section">
+            <p style="font-size: 13px; margin-bottom: 15px;">請向店員出示此畫面<br>確認後點擊下方扣除 10 枚勳章</p>
+            <button id="finalRedeemBtn" class="btn" style="background-color: #8b0000;">確認扣點兌換</button>
         </div>
     </div>
 
@@ -44,60 +49,62 @@
 <script>
     const LIFF_ID = "2008892988-xUkrMmtw"; 
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyPDXFmisG6YZJypcbiyA0wJ8QbzZs2yvszA6qiEot23DM96cgTfLdWhyhyTAdrw2P0rg/exec";
+    let userProfile = null;
+    let userPoints = 0;
 
     async function main() {
         try {
             await liff.init({ liffId: LIFF_ID });
             if (!liff.isLoggedIn()) { liff.login(); return; }
 
-            const profile = await liff.getProfile();
+            userProfile = await liff.getProfile();
             const urlParams = new URLSearchParams(window.location.search);
             const act = urlParams.get('act');
 
-            const response = await fetch(SCRIPT_URL + "?uid=" + profile.userId);
-            let currentPoints = parseInt(await response.text()) || 0;
+            // 1. 初始查詢
+            const response = await fetch(SCRIPT_URL + "?uid=" + userProfile.userId);
+            userPoints = parseInt(await response.text()) || 0;
 
-            document.getElementById('status').innerText = `你好，${profile.displayName}`;
+            document.getElementById('status').innerText = `你好，${userProfile.displayName}`;
             document.getElementById('action-area').style.display = 'block';
-            const btn = document.getElementById('mainBtn');
-            const msgBox = document.getElementById('msg-box');
-            const pointsDisplay = document.getElementById('points-display');
 
-            if (act === "m") {
-                // --- 兌換模式 ---
-                pointsDisplay.innerText = currentPoints;
-                btn.innerText = "確認兌換獎勵";
-                if (currentPoints >= 10) {
-                    msgBox.innerHTML = "勳章已達兌換門檻";
-                    btn.onclick = () => sendData('minus', profile);
-                } else {
-                    msgBox.innerHTML = "勳章不足 10 枚，尚無法兌換";
-                    msgBox.style.color = "#e74c3c";
-                    btn.disabled = true;
-                    btn.innerText = "尚未達標";
-                }
-            } else if (act === "v") {
-                // --- 純查詢模式 ---
-                pointsDisplay.innerText = currentPoints;
-                msgBox.innerHTML = "您的勳章紀錄如上";
-                btn.innerText = "關閉視窗";
-                btn.onclick = () => liff.closeWindow();
-            } else {
-                // --- 自動加點模式 ---
-                pointsDisplay.innerText = currentPoints + 1;
-                msgBox.innerHTML = "勳章已成功存入您的帳戶";
-                btn.innerText = "查看勳章紀錄";
-                // 點擊後跳轉到純查詢頁面
-                btn.onclick = () => {
-                    window.location.href = window.location.pathname + "?act=v";
-                };
-                
-                // 執行背景加點
-                sendData('add', profile, true); 
+            // 2. 判斷是否需要自動集點 (主網址進來且沒有 act 參數時)
+            if (!act) {
+                userPoints += 1; // 畫面上先預加
+                document.getElementById('msg-box').innerText = "今日勳章已自動存入紀錄";
+                sendData('add', userProfile, true); 
+            } else if (act === 'm') {
+                showRedeem(); // 如果網址帶 m 直接開兌換
             }
+
+            refreshUI();
+
+            // 按鈕事件綁定
+            document.getElementById('showRedeemBtn').onclick = showRedeem;
+            document.getElementById('closeBtn').onclick = () => liff.closeWindow();
+            document.getElementById('finalRedeemBtn').onclick = () => sendData('minus', userProfile);
+
         } catch (err) {
             document.getElementById('status').innerText = "連線異常，請重新掃描";
         }
+    }
+
+    function refreshUI() {
+        document.getElementById('points-display').innerText = userPoints;
+        const redeemBtn = document.getElementById('finalRedeemBtn');
+        if (userPoints < 10) {
+            redeemBtn.disabled = true;
+            redeemBtn.innerText = "勳章不足 (需 10 枚)";
+        } else {
+            redeemBtn.disabled = false;
+            redeemBtn.innerText = "確認扣點兌換";
+        }
+    }
+
+    function showRedeem() {
+        document.getElementById('redeem-section').style.display = 'block';
+        document.getElementById('showRedeemBtn').style.display = 'none';
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
 
     function sendData(actionType, profile, silent = false) {
@@ -111,7 +118,7 @@
             })
         }).then(() => {
             if (!silent) {
-                alert(actionType === 'add' ? "加點成功！" : "已兌換成功。");
+                alert(actionType === 'add' ? "集點成功" : "兌換成功！已扣除 10 枚勳章。");
                 liff.closeWindow();
             }
         });
