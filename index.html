@@ -84,11 +84,12 @@
             document.getElementById('showRedeemBtn').onclick = showRedeem;
             document.getElementById('closeBtn').onclick = () => liff.closeWindow();
             document.getElementById('finalRedeemBtn').onclick = () => {
-                // 即時反饋：按下扣點後立刻更新 UI
                 if (userPoints >= 10) {
-                    userPoints -= 10;
-                    refreshUI();
-                    document.getElementById('msg-box').innerText = "兌換處理中，請稍候...";
+                    // 鎖定按鈕防止連點，但不更新點數數字
+                    const btn = document.getElementById('finalRedeemBtn');
+                    btn.disabled = true;
+                    btn.innerText = "兌換處理中...";
+                    document.getElementById('msg-box').innerText = "正在通訊中，請稍候...";
                     sendData('minus', userProfile);
                 }
             };
@@ -127,7 +128,9 @@
             })
         }).then(() => {
             if (!silent) {
-                // 成功後提示並關閉
+                // 成功回傳後才真正執行扣點更新
+                userPoints -= 10;
+                refreshUI();
                 alert("兌換成功！已扣除 10 枚勳章。");
                 liff.closeWindow();
             }
