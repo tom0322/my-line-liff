@@ -42,6 +42,7 @@
         <div id="redeem-section">
             <p style="font-size: 13px; margin-bottom: 15px;">請向店員出示此畫面<br>確認後點擊下方扣除 10 枚勳章</p>
             <button id="finalRedeemBtn" class="btn" style="background-color: #8b0000;">確認扣點兌換</button>
+            <button id="backBtn" class="btn btn-outline" style="display:none; margin-top:10px;">回到集點頁面</button>
         </div>
     </div>
 
@@ -83,9 +84,14 @@
             
             document.getElementById('showRedeemBtn').onclick = showRedeem;
             document.getElementById('closeBtn').onclick = () => liff.closeWindow();
+            document.getElementById('backBtn').onclick = () => {
+                document.getElementById('redeem-section').style.display = 'none';
+                document.getElementById('showRedeemBtn').style.display = 'block';
+                document.getElementById('msg-box').innerText = "您的勳章紀錄如上";
+            };
+
             document.getElementById('finalRedeemBtn').onclick = () => {
                 if (userPoints >= 10) {
-                    // 鎖定按鈕防止連點，但不更新點數數字
                     const btn = document.getElementById('finalRedeemBtn');
                     btn.disabled = true;
                     btn.innerText = "兌換處理中...";
@@ -128,11 +134,13 @@
             })
         }).then(() => {
             if (!silent) {
-                // 成功回傳後才真正執行扣點更新
                 userPoints -= 10;
                 refreshUI();
                 alert("兌換成功！已扣除 10 枚勳章。");
-                liff.closeWindow();
+                // 兌換成功後，隱藏兌換按鈕，顯示回到集點按鈕
+                document.getElementById('finalRedeemBtn').style.display = 'none';
+                document.getElementById('backBtn').style.display = 'block';
+                document.getElementById('msg-box').innerText = "獎勵已兌換完成！";
             }
         });
     }
