@@ -10,10 +10,7 @@
         body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background-color: var(--bg-color); color: var(--brand-color); display: flex; justify-content: center; padding: 20px; }
         .container { background: white; padding: 40px 30px; border-radius: 2px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); width: 100%; max-width: 400px; border-top: 5px solid var(--brand-color); text-align: center; }
         .brand-logo { width: 120px; height: auto; margin: 0 auto 15px auto; display: block; }
-        
-        /* 品牌標語樣式 */
         .slogan { font-size: 16px; letter-spacing: 3px; color: var(--brand-color); margin-bottom: 10px; font-weight: 300; opacity: 0.9; }
-        
         .status-text { font-size: 13px; color: #888; margin-bottom: 25px; letter-spacing: 1px; }
         .points-box { background: #f0f0f0; padding: 25px; margin-bottom: 25px; }
         .points-num { font-size: 48px; font-weight: bold; }
@@ -28,9 +25,7 @@
 
 <div class="container">
     <img src="https://raw.githubusercontent.com/tom0322/my-line-liff/main/logo.png" alt="或者 OR Logo" class="brand-logo">
-    
     <div class="slogan">讓夥伴發光</div>
-    
     <div id="status" class="status-text">讀取中...</div>
 
     <div id="action-area" style="display:none;">
@@ -74,8 +69,6 @@
             document.getElementById('status').innerText = `你好，${userProfile.displayName}`;
             document.getElementById('action-area').style.display = 'block';
             
-            const showRedeemBtn = document.getElementById('showRedeemBtn');
-
             if (act === 'v') {
                 document.getElementById('msg-box').innerText = "您的勳章紀錄如上";
             } else if (act === 'm') {
@@ -88,9 +81,17 @@
             
             refreshUI();
             
-            showRedeemBtn.onclick = showRedeem;
+            document.getElementById('showRedeemBtn').onclick = showRedeem;
             document.getElementById('closeBtn').onclick = () => liff.closeWindow();
-            document.getElementById('finalRedeemBtn').onclick = () => sendData('minus', userProfile);
+            document.getElementById('finalRedeemBtn').onclick = () => {
+                // 即時反饋：按下扣點後立刻更新 UI
+                if (userPoints >= 10) {
+                    userPoints -= 10;
+                    refreshUI();
+                    document.getElementById('msg-box').innerText = "兌換處理中，請稍候...";
+                    sendData('minus', userProfile);
+                }
+            };
 
         } catch (err) {
             document.getElementById('status').innerText = "連線異常，請重新掃描";
@@ -102,7 +103,7 @@
         const redeemBtn = document.getElementById('finalRedeemBtn');
         if (userPoints < 10) {
             redeemBtn.disabled = true;
-            redeemBtn.innerText = "勳章不足 (需 10 枚)";
+            redeemBtn.innerText = "勳章不足";
         } else {
             redeemBtn.disabled = false;
             redeemBtn.innerText = "確認扣點兌換";
@@ -126,7 +127,8 @@
             })
         }).then(() => {
             if (!silent) {
-                alert(actionType === 'add' ? "集點成功" : "兌換成功！已扣除 10 枚勳章。");
+                // 成功後提示並關閉
+                alert("兌換成功！已扣除 10 枚勳章。");
                 liff.closeWindow();
             }
         });
