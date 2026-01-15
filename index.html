@@ -3,26 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>集點系統</title>
+    <title>集點兌換系統</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        body { font-family: sans-serif; text-align: center; padding-top: 50px; }
-        .btn { font-size: 20px; padding: 15px 30px; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        .red { background-color: #ff4d4d; }
+        body { font-family: -apple-system, sans-serif; text-align: center; padding: 40px 20px; background-color: #f8f9fa; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { color: #333; }
+        p { color: #666; margin-bottom: 30px; }
+        .btn { font-size: 18px; padding: 15px 40px; color: white; border: none; border-radius: 50px; cursor: pointer; width: 100%; font-weight: bold; }
+        .red { background-color: #e44d26; box-shadow: 0 4px #b03a1a; }
+        .red:active { transform: translateY(2px); box-shadow: none; }
+        #status { color: #888; font-size: 14px; }
     </style>
 </head>
 <body>
-    <div id="status">讀取中...</div>
-    <div id="action-area" style="display:none;">
-        <h2 id="msg-title">確認兌換？</h2>
-        <p>將扣除 10 點點數</p>
-        <button onclick="sendData('minus')" class="btn red">確定兌換</button>
+
+    <div class="card">
+        <div id="status">系統初始化中...</div>
+
+        <div id="action-area" style="display:none;">
+            <h2 id="msg-title">確認兌換？</h2>
+            <p>即將扣除 10 點點數</p>
+            <button id="redeemBtn" class="btn red">確定兌換</button>
+        </div>
     </div>
 
     <script>
         async function main() {
             try {
-                // [修改點 1] 請輸入你的 LIFF ID
+                // 1. 初始化 LIFF
                 await liff.init({ liffId: "2008892988-xUkrMmtw" });
 
                 if (!liff.isLoggedIn()) {
@@ -30,18 +39,26 @@
                     return;
                 }
 
+                // 2. 取得用戶資料
                 const profile = await liff.getProfile();
                 const urlParams = new URLSearchParams(window.location.search);
                 const act = urlParams.get('act');
                 
-                // [修改點 2] 請輸入你的 Google Apps Script 網址
+                // 3. 你的 Google Apps Script 網址
                 const scriptURL = "https://script.google.com/macros/s/AKfycbyPDXFmisG6YZJypcbiyA0wJ8QbzZs2yvszA6qiEot23DM96cgTfLdWhyhyTAdrw2P0rg/exec";
 
                 if (act === "m") {
+                    // 進入兌換模式
                     document.getElementById('status').style.display = 'none';
                     document.getElementById('action-area').style.display = 'block';
+                    
+                    // 綁定點擊事件，確保參數能傳入 sendData
+                    document.getElementById('redeemBtn').onclick = function() {
+                        sendData('minus', profile, scriptURL);
+                    };
                 } else {
-                    document.getElementById('status').innerText = "你好 " + profile.displayName + "，正在集點...";
+                    // 進入自動加點模式
+                    document.getElementById('status').innerText = "你好 " + profile.displayName + "，正在集點中...";
                     sendData('add', profile, scriptURL);
                 }
             } catch (err) {
@@ -49,19 +66,24 @@
             }
         }
 
+        // 核心傳送函數
         function sendData(actionType, profile, scriptURL) {
+            document.getElementById('status').innerText = "正在通訊中，請稍候...";
+            
             fetch(scriptURL, {
                 method: 'POST',
-                mode: 'no-cors',
+                mode: 'no-cors', // 配合 Google Apps Script 的特殊跨域設定
                 body: JSON.stringify({
                     userId: profile.userId,
                     displayName: profile.displayName,
                     action: actionType
                 })
             }).then(() => {
-                alert(actionType === 'add' ? "加點成功！" : "兌換完成！");
-                liff.closeWindow();
-            }).catch(e => alert("傳送失敗: " + e));
+                alert(actionType === 'add' ? "✨ 加點成功！" : "✅ 兌換完成！點數已扣除");
+                liff.closeWindow(); // 成功後自動關閉視窗
+            }).catch(e => {
+                alert("傳送失敗，請檢查網路：" + e);
+            });
         }
 
         main();
