@@ -22,12 +22,12 @@
 
 <div class="container">
     <h1>或者 OR</h1>
-    <div id="status" class="status-text">正在探索您的集點紀錄...</div>
+    <div id="status" class="status-text">正在探索您的勳章紀錄...</div>
 
     <div id="action-area" style="display:none;">
         <div class="points-box">
             <div id="points-display" class="points-num">--</div>
-            <div style="font-size: 12px; margin-top: 5px;">目前累積點數</div>
+            <div style="font-size: 12px; margin-top: 5px;">目前累積勳章</div>
         </div>
         
         <div id="msg-box" style="margin-bottom: 25px; font-weight: bold;"></div>
@@ -35,7 +35,7 @@
         <button id="redeemBtn" class="btn">確認兌換獎勵</button>
     </div>
 
-    <div class="footer-logo">或者，是一種生活選擇。</div>
+    <div class="footer-logo">讓在地人驕傲 旅行者憧憬 - 或者。</div>
 </div>
 
 <script>
@@ -64,17 +64,17 @@
 
             if (act === "m") {
                 if (currentPoints >= 10) {
-                    msgBox.innerHTML = "點數已達兌換門檻";
+                    msgBox.innerHTML = "勳章已達兌換門檻";
                     msgBox.style.color = "#3a4a3a";
                     btn.onclick = () => sendData('minus', profile);
                 } else {
-                    msgBox.innerHTML = "點數不足 10 點，尚無法兌換";
+                    msgBox.innerHTML = "勳章不足 10 枚，尚無法兌換";
                     msgBox.style.color = "#e74c3c";
                     btn.disabled = true;
                     btn.innerText = "尚未達標";
                 }
             } else {
-                btn.innerText = "自動集點中...";
+                btn.innerText = "自動集章中...";
                 btn.disabled = true;
                 sendData('add', profile);
             }
@@ -96,7 +96,7 @@
                 action: actionType
             })
         }).then(() => {
-            alert(actionType === 'add' ? "感謝您的光臨，點數已存入「或者」帳戶。" : "兌換要求已送出，請與店員確認。");
+            alert(actionType === 'add' ? "感謝您的光臨，勳章已存入「或者」帳戶。" : "兌換要求已送出，請與店員確認。");
             liff.closeWindow();
         });
     }
