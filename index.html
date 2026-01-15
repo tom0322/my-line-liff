@@ -6,14 +6,15 @@
     <title>集點兌換系統</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; text-align: center; padding: 40px 20px; background-color: #f8f9fa; }
-        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h2 { color: #333; }
-        p { color: #666; margin-bottom: 30px; }
-        .btn { font-size: 18px; padding: 15px 40px; color: white; border: none; border-radius: 50px; cursor: pointer; width: 100%; font-weight: bold; }
-        .red { background-color: #e44d26; box-shadow: 0 4px #b03a1a; }
-        .red:active { transform: translateY(2px); box-shadow: none; }
-        #status { color: #888; font-size: 14px; }
+        body { font-family: -apple-system, sans-serif; text-align: center; padding: 40px 20px; background-color: #f4f7f6; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
+        h2 { color: #333; margin-top: 0; }
+        p { color: #666; font-size: 16px; line-height: 1.5; }
+        .btn { font-size: 18px; padding: 15px; color: white; border: none; border-radius: 10px; cursor: pointer; width: 100%; font-weight: bold; transition: 0.3s; }
+        .red { background-color: #e74c3c; }
+        .red:disabled { background-color: #ccc; cursor: not-allowed; }
+        #status { color: #2ecc71; font-weight: bold; margin-bottom: 20px; min-height: 24px; }
+        .notice { font-size: 12px; color: #999; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -22,67 +23,75 @@
         <div id="status">系統初始化中...</div>
 
         <div id="action-area" style="display:none;">
-            <h2 id="msg-title">確認兌換？</h2>
-            <p>即將扣除 10 點點數</p>
-            <button id="redeemBtn" class="btn red">確定兌換</button>
+            <h2>點數兌換</h2>
+            <p>請向店員出示此畫面<br>確認後點擊下方按鈕</p>
+            <p style="color:#e74c3c; font-weight:bold;">將扣除 10 點點數</p>
+            <button id="redeemBtn" class="btn red">確認兌換 (扣除10點)</button>
+            <div class="notice">※ 若點數不足，兌換將不會生效 ※</div>
         </div>
     </div>
 
     <script>
+        // 設定區
+        const LIFF_ID = "2008892988-xUkrMmtw"; 
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyPDXFmisG6YZJypcbiyA0wJ8QbzZs2yvszA6qiEot23DM96cgTfLdWhyhyTAdrw2P0rg/exec";
+
         async function main() {
             try {
-                // 1. 初始化 LIFF
-                await liff.init({ liffId: "2008892988-xUkrMmtw" });
+                await liff.init({ liffId: LIFF_ID });
 
                 if (!liff.isLoggedIn()) {
                     liff.login();
                     return;
                 }
 
-                // 2. 取得用戶資料
                 const profile = await liff.getProfile();
                 const urlParams = new URLSearchParams(window.location.search);
                 const act = urlParams.get('act');
-                
-                // 3. 你的 Google Apps Script 網址
-                const scriptURL = "https://script.google.com/macros/s/AKfycbyPDXFmisG6YZJypcbiyA0wJ8QbzZs2yvszA6qiEot23DM96cgTfLdWhyhyTAdrw2P0rg/exec";
 
                 if (act === "m") {
-                    // 進入兌換模式
                     document.getElementById('status').style.display = 'none';
                     document.getElementById('action-area').style.display = 'block';
                     
-                    // 綁定點擊事件，確保參數能傳入 sendData
                     document.getElementById('redeemBtn').onclick = function() {
-                        sendData('minus', profile, scriptURL);
+                        sendData('minus', profile);
                     };
                 } else {
-                    // 進入自動加點模式
-                    document.getElementById('status').innerText = "你好 " + profile.displayName + "，正在集點中...";
-                    sendData('add', profile, scriptURL);
+                    document.getElementById('status').innerText = "你好 " + profile.displayName + "，正在集點...";
+                    sendData('add', profile);
                 }
             } catch (err) {
-                document.getElementById('status').innerText = "發生錯誤: " + err;
+                document.getElementById('status').innerText = "系統錯誤: " + err;
             }
         }
 
-        // 核心傳送函數
-        function sendData(actionType, profile, scriptURL) {
-            document.getElementById('status').innerText = "正在通訊中，請稍候...";
-            
-            fetch(scriptURL, {
+        function sendData(actionType, profile) {
+            const btn = document.getElementById('redeemBtn');
+            if(btn) {
+                btn.disabled = true;
+                btn.innerText = "處理中...";
+            }
+            document.getElementById('status').style.display = 'block';
+            document.getElementById('status').innerText = "資料傳送中...";
+
+            fetch(SCRIPT_URL, {
                 method: 'POST',
-                mode: 'no-cors', // 配合 Google Apps Script 的特殊跨域設定
+                mode: 'no-cors', 
                 body: JSON.stringify({
                     userId: profile.userId,
                     displayName: profile.displayName,
                     action: actionType
                 })
             }).then(() => {
-                alert(actionType === 'add' ? "✨ 加點成功！" : "✅ 兌換完成！點數已扣除");
-                liff.closeWindow(); // 成功後自動關閉視窗
+                const msg = (actionType === 'add') ? "集點要求已送出！" : "兌換要求已送出！\n請店員確認試算表餘額。";
+                alert(msg);
+                liff.closeWindow();
             }).catch(e => {
-                alert("傳送失敗，請檢查網路：" + e);
+                alert("網路錯誤，請重試：" + e);
+                if(btn) {
+                    btn.disabled = false;
+                    btn.innerText = "確認兌換 (扣除10點)";
+                }
             });
         }
 
